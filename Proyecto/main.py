@@ -289,79 +289,104 @@ with col2:
     st.write(f"El intervalo de confianza para la varianza poblacional es: [{lower_bound}, {upper_bound}]")
 
 st.markdown("<br>", unsafe_allow_html=True)
-st.markdown("<h2 style='text-align: center;'>Análisis de las horas trabajadas por semana</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center;'>Análisis de las horas trabajadas por semana por género</h2>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns(3)
+# Extraemos las horas trabajadas por semana y el género
+data = impact[['Gender', 'Hours_Worked_Per_Week']]
 
-with col1:
-    st.markdown("<br>", unsafe_allow_html=True)
-    men_hours = impact[impact['Gender'] == 'Male']['Hours_Worked_Per_Week']
-    k2_men, p_men = stats.normaltest(men_hours)
-    st.write(f'Estadístico K2 (Hombres): {k2_men}')
-    st.write(f'Valor p (Hombres): {p_men}')
-    if p_men > alpha:
-        st.write("No se puede rechazar la hipótesis nula para hombres: los datos parecen provenir de una distribución normal.")
-    else:
-        st.write("Se rechaza la hipótesis nula para hombres: los datos no parecen provenir de una distribución normal.")
+# Creamos una tabla de contingencia
+contingency_table = pd.crosstab(data['Gender'], data['Hours_Worked_Per_Week'])
+st.write(contingency_table)
 
-    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+# Aumentamos el tamaño de la figura para darle más espacio al gráfico
+fig, ax = plt.subplots(figsize=(14, 12))
+
+# Creamos el heatmap con los géneros en el eje x y las horas en el eje y
+sns.heatmap(contingency_table.T, annot=True, fmt="d", cmap="YlGnBu", ax=ax, 
+            annot_kws={"size": 8}, cbar_kws={'shrink': 0.5})
+
+# Configuramos el título y los ejes con tamaños de fuente adecuados
+ax.set_xlabel('Género', fontsize=14)
+ax.set_ylabel('Horas Trabajadas por Semana', fontsize=14)
+
+# Rotamos las etiquetas del eje x para evitar solapamientos
+plt.xticks(rotation=45, ha='right', fontsize=10)
+plt.yticks(fontsize=12)
+
+# Ajustamos los márgenes para que todo quepa correctamente
+plt.tight_layout()
+
+st.pyplot(fig)
+
+st.markdown("<h3 style='text-align: center;'>Análisis de las horas trabajadas por semana de hombres vs no hombres</h3>", unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+
+men_hours = impact[impact['Gender'] == 'Male']['Hours_Worked_Per_Week']
+k2_men, p_men = stats.normaltest(men_hours)
+non_men_hours = impact[impact['Gender'] != 'Male']['Hours_Worked_Per_Week']
+k2_non_men, p_non_men = stats.normaltest(non_men_hours)
     
+with col1:
+    container = st.container(border=True, key="men")
+    container.write(f'Estadístico K2 (Hombres): {k2_men}')
+    container.write(f'Valor p (Hombres): {p_men}')
+    if p_men > alpha:
+        container.write("No se puede rechazar la hipótesis nula para hombres: los datos parecen provenir de una distribución normal.")
+    else:
+        container.write("Se rechaza la hipótesis nula para hombres: los datos no parecen provenir de una distribución normal.")
+
+    # Histograma y curva de distribución para hombres y no hombres
+    fig, ax = plt.subplots()
+    
+    # Hombres
+    ax.hist(men_hours, bins=30, edgecolor='black', density=True, alpha=0.5, label='Hombres', color='blue')
+    mean_men, std_dev_men = np.mean(men_hours), np.std(men_hours)
+    x_men = np.linspace(xmin, xmax, 100)
+    p_men = stats.norm.pdf(x_men, mean_men, std_dev_men)
+    ax.plot(x_men, p_men, 'b', linewidth=2, label='Curva Normal - Hombres')
+    
+    # No Hombres
+    ax.hist(non_men_hours, bins=30, edgecolor='black', density=True, alpha=0.5, label='No Hombres', color='red')
+    mean_non_men, std_dev_non_men = np.mean(non_men_hours), np.std(non_men_hours)
+    x_non_men = np.linspace(xmin, xmax, 100)
+    p_non_men = stats.norm.pdf(x_non_men, mean_non_men, std_dev_non_men)
+    ax.plot(x_non_men, p_non_men, 'r', linewidth=2, label='Curva Normal - No Hombres')
+    
+    ax.set_xlabel('Horas Trabajadas por Semana')
+    ax.set_ylabel('Frecuencia')
+    ax.set_title('Histograma y Curvas Normales para Hombres y No Hombres')
+    ax.legend()
+    st.pyplot(fig)
+    
+with col2:
     non_men_hours = impact[impact['Gender'] != 'Male']['Hours_Worked_Per_Week']
     k2_non_men, p_non_men = stats.normaltest(non_men_hours)
-    st.write(f'Estadístico K2 (No Hombres): {k2_non_men}')
-    st.write(f'Valor p (No Hombres): {p_non_men}')
+    container = st.container(border=True, key="no men")
+    container.write(f'Estadístico K2 (No Hombres): {k2_non_men}')
+    container.write(f'Valor p (No Hombres): {p_non_men}')
     if p_non_men > alpha:
-        st.write("No se puede rechazar la hipótesis nula para no hombres: los datos parecen provenir de una distribución normal.")
+        container.write("No se puede rechazar la hipótesis nula para no hombres: los datos parecen provenir de una distribución normal.")
     else:
-        st.write("Se rechaza la hipótesis nula para no hombres: los datos no parecen provenir de una distribución normal.")
+        container.write("Se rechaza la hipótesis nula para no hombres: los datos no parecen provenir de una distribución normal.")
 
-with col2:
-    # Histograma y curva de distribución para hombres
-    fig1, ax1 = plt.subplots()
-    ax1.hist(men_hours, bins=30, edgecolor='black', density=True, label='Hombres')
-    xmin, xmax = ax1.get_xlim()
-    mean, std_dev = np.mean(men_hours), np.std(men_hours)
-    x = np.linspace(xmin, xmax, 100)
-    p = stats.norm.pdf(x, mean, std_dev)
-    ax1.plot(x, p, 'k', linewidth=2, label='Curva Normal - Hombres')
-    ax1.set_xlabel('Horas Trabajadas por Semana')
-    ax1.set_ylabel('Frecuencia')
-    ax1.set_title('Histograma y Curva Normal para Hombres')
-    ax1.legend()
-    st.pyplot(fig1)
-
-    st.markdown("<br>", unsafe_allow_html=True)
+    # Gráfico Q-Q para hombres y no hombres
+    fig, ax = plt.subplots()
     
-    # Histograma y curva de distribución para no hombres
-    fig2, ax2 = plt.subplots()
-    ax2.hist(non_men_hours, bins=30, edgecolor='black', density=True, label='No Hombres')
-    xmin, xmax = ax2.get_xlim()
-    mean, std_dev = np.mean(non_men_hours), np.std(non_men_hours)
-    x = np.linspace(xmin, xmax, 100)
-    p = stats.norm.pdf(x, mean, std_dev)
-    ax2.plot(x, p, 'k', linewidth=2, label='Curva Normal - No Hombres')
-    ax2.set_xlabel('Horas Trabajadas por Semana')
-    ax2.set_ylabel('Frecuencia')
-    ax2.set_title('Histograma y Curva Normal para No Hombres')
-    ax2.legend()
-    st.pyplot(fig2)
-
-with col3:
-    # Gráfico Q-Q para hombres
-    fig3, ax3 = plt.subplots()
-    stats.probplot(men_hours, dist="norm", plot=ax3)
-    ax3.set_title('Gráfico Q-Q para Hombres')
-    st.pyplot(fig3)
+    # Hombres
+    stats.probplot(men_hours, dist="norm", plot=ax)
+    ax.get_lines()[0].set_color('blue')  # Cambiar color de los puntos
+    ax.get_lines()[1].set_color('blue')  # Cambiar color de la línea
     
-    st.markdown("<br>", unsafe_allow_html=True)
+    # No Hombres
+    stats.probplot(non_men_hours, dist="norm", plot=ax)
+    ax.get_lines()[2].set_color('red')  # Cambiar color de los puntos
+    ax.get_lines()[3].set_color('red')  # Cambiar color de la línea
     
-    # Gráfico Q-Q para no hombres
-    fig4, ax4 = plt.subplots()
-    stats.probplot(non_men_hours, dist="norm", plot=ax4)
-    ax4.set_title('Gráfico Q-Q para No Hombres')
-    st.pyplot(fig4)
-    
+    ax.set_title('Gráfico Q-Q para Hombres y No Hombres')
+    ax.legend(['Hombres', 'Línea Hombres', 'No Hombres', 'Línea No Hombres'])
+    st.pyplot(fig)
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align: center;'>Prueba de Hipótesis para Dos Poblaciones</h3>", unsafe_allow_html=True)
