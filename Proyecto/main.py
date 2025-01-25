@@ -1,10 +1,16 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import seaborn as sns
-import geopandas as gpd
-import scipy.stats as stats
+import statsmodels.api as sm
 import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+from statsmodels.stats.stattools import durbin_watson
+from scipy import stats
+from statsmodels.compat import lzip
+import statsmodels.stats.api as sms
+from scipy.stats import normaltest
+from statsmodels.formula.api import ols
+
 
 st.set_page_config( 
     page_title="Impacto del trabajo remoto en la salud mental",
@@ -457,34 +463,375 @@ with col2:
     st.markdown(f'Grados de libertad: {degrees_of_freedom}')
     st.markdown(f'Valor crítico (t-student): {t_critical}')
 
+col1, col2 = st.columns(2)
+
+with col1: 
 # Pair plot
-st.markdown('#### Pair Plot')
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import streamlit as st
+    st.markdown('#### Pair Plot')
 
-# Ejemplo de datos (asegúrate de que men_hours y non_men_hours estén definidos)
-min_length = min(len(men_hours.values), len(non_men_hours.values))
-data = {
-    'Hombres': men_hours.values.tolist()[:min_length],
-    'Resto de Géneros': non_men_hours.values.tolist()[:min_length],
-    'Grupo': ['Hombres'] * 635 + ['Resto de Géneros'] * 635
-}
-df = pd.DataFrame(data)
+    # Ejemplo de datos (asegúrate de que men_hours y non_men_hours estén definidos)
+    min_length = min(len(men_hours.values), len(non_men_hours.values))
+    data = {
+        'Hombres': men_hours.values.tolist()[:min_length],
+        'Resto de Géneros': non_men_hours.values.tolist()[:min_length],
+        'Grupo': ['Hombres'] * 635 + ['Resto de Géneros'] * 635
+    }
+    df = pd.DataFrame(data)
 
-# Crear el pair plot
-fig = sns.pairplot(df, hue='Grupo').fig
+    # Crear el pair plot
+    fig = sns.pairplot(df, hue='Grupo')
 
-# Mostrar el gráfico en Streamlit
+    # Mostrar el gráfico en Streamlit
+    st.pyplot(fig)
+    
+with col2: 
+    st.markdown('<br><br><br><br><br><br>', unsafe_allow_html=True)
+    st.markdown('''
+    La prueba de hipótesis indica que los hombres tienden a trabajar más horas de media a la semana que otros 
+    géneros en esta muestra, subrayando la necesidad de abordar los posibles riesgos que este comportamiento 
+    puede tener en su salud mental. Es fundamental que tanto los empleadores como los empleados consideren el 
+    equilibrio entre el trabajo y la vida personal como una prioridad, para prevenir el estrés crónico, el 
+    agotamiento y otros problemas relacionados con la salud mental. A largo plazo, promover una cultura laboral 
+    que valore el bienestar de los empleados puede ser esencial para mejorar la salud mental de los hombres y 
+    de la fuerza laboral en general.        
+    ''',)
+
+st.markdown("<h2 style='text-align: center;'>Análisis de correlación</h2>", unsafe_allow_html=True)
+
+# Seleccionar solo las columnas necesarias
+df_grouped = impact.groupby('Number_of_Virtual_Meetings').agg(
+    num_hours=pd.NamedAgg(column='Hours_Worked_Per_Week', aggfunc='count'),
+    total_hours=pd.NamedAgg(column='Hours_Worked_Per_Week', aggfunc='sum')
+).reset_index()
+
+df_grouped['average_hours'] = df_grouped['total_hours'] / df_grouped['num_hours']
+
+# Calcular la correlación
+correlation = df_grouped['Number_of_Virtual_Meetings'].corr(df_grouped['average_hours'])
+
+# Mostrar la correlación en Streamlit
+st.write(f"La correlación es: {correlation}")
+# Realizar un ajuste lineal
+slope, intercept = np.polyfit(df_grouped['Number_of_Virtual_Meetings'], df_grouped['average_hours'], 1)
+
+# Mostrar la pendiente y la intersección en Streamlit
+st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+
+# Graficar los datos y la línea de ajuste
+plt.figure(figsize=(16, 8))
+plt.scatter(df_grouped['Number_of_Virtual_Meetings'], df_grouped['average_hours'], color='blue')
+plt.plot(df_grouped['Number_of_Virtual_Meetings'], slope * df_grouped['Number_of_Virtual_Meetings'] + intercept, color='red')
+plt.title('Relación entre Reuniones Virtuales y Horas Trabajadas por Semana')
+plt.xlabel('Número de Reuniones Virtuales')
+plt.ylabel('Horas Promedio Trabajadas por Semana')
+plt.grid(True)
+st.pyplot(plt)
+
+# Seleccionar solo las columnas necesarias
+df_grouped = impact.groupby('Age').agg(
+    num_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='count'),
+    total_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='sum')
+).reset_index()
+
+df_grouped['average_support'] = df_grouped['total_support'] / df_grouped['num_support']
+
+# Calcular la correlación
+correlation = df_grouped['Age'].corr(df_grouped['average_support'])
+
+# Mostrar la correlación en Streamlit
+st.write(f"La correlación es: {correlation}")
+
+# Realizar un ajuste lineal
+slope, intercept = np.polyfit(df_grouped['Age'], df_grouped['average_support'], 1)
+
+# Mostrar la pendiente y la intersección en Streamlit
+st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+
+# Graficar los datos y la línea de ajuste
+plt.figure(figsize=(16, 8))
+plt.scatter(df_grouped['Age'], df_grouped['average_support'], color='blue')
+plt.plot(df_grouped['Age'], slope * df_grouped['Age'] + intercept, color='red')
+plt.title('Relación entre Edad y Apoyo de las Compañías al Trabajo Remoto')
+plt.xlabel('Edad')
+plt.ylabel('Apoyo Promedio de las Compañías al Trabajo Remoto')
+plt.grid(True)
+st.pyplot(plt)
+
+# Seleccionar las columnas numéricas
+numeric_col = ['Age', 'Years_of_Experience', 'Hours_Worked_Per_Week', 'Number_of_Virtual_Meetings', 
+               'Work_Life_Balance_Rating', 'Social_Isolation_Rating', 'Company_Support_for_Remote_Work']
+
+# Crear el heatmap
+plt.figure(figsize=(10, 5))
+heatmap = sns.heatmap(impact[numeric_col].corr(), annot=True, cmap='coolwarm')
+
+# Mostrar el heatmap en Streamlit
+st.pyplot(heatmap.figure)
+
+# Variables independientes
+X = impact[['Age', 'Years_of_Experience', 'Number_of_Virtual_Meetings', 'Hours_Worked_Per_Week', 
+            'Work_Life_Balance_Rating', 'Social_Isolation_Rating']]
+
+# Variable dependiente
+y = impact['Company_Support_for_Remote_Work']
+
+# Añadir la constante
+X = sm.add_constant(X)
+
+# Ajustar el Modelo de Regresión Lineal
+model = sm.OLS(y, X).fit()
+
+# Mostrar el resumen del modelo en Streamlit
+st.write(model.summary())
+
+# Seleccionar solo las columnas necesarias
+df_grouped = impact.groupby('Age').agg(
+    num_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='count'),
+    total_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='sum')
+).reset_index()
+
+df_grouped['average_support'] = df_grouped['total_support'] / df_grouped['num_support']
+
+# Calcular la correlación
+correlation = df_grouped['Age'].corr(df_grouped['average_support'])
+
+# Mostrar la correlación en Streamlit
+st.write(f"La correlación es: {correlation}")
+
+# Realizar un ajuste lineal
+slope, intercept = np.polyfit(df_grouped['Age'], df_grouped['average_support'], 1)
+
+# Mostrar la pendiente y la intersección en Streamlit
+st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+
+# Ajustar el Modelo de Regresión Lineal
+X = sm.add_constant(df_grouped['Age'])
+model = sm.OLS(df_grouped['average_support'], X).fit()
+
+# Obtener los residuos del modelo
+residuals = model.resid
+
+# Mostrar el resumen del modelo en Streamlit
+st.title("Análisis de Regresión Lineal: Edad y Apoyo de las Compañías")
+st.write(model.summary())
+
+# Gráfico QQ de los residuos
+fig = sm.qqplot(residuals, line='s')
+plt.title('Gráfico QQ de los Residuos')
 st.pyplot(fig)
 
-st.markdown('''
-La prueba de hipótesis indica que los hombres tienden a trabajar más horas de media a la semana que otros 
-géneros en esta muestra, subrayando la necesidad de abordar los posibles riesgos que este comportamiento 
-puede tener en su salud mental. Es fundamental que tanto los empleadores como los empleados consideren el 
-equilibrio entre el trabajo y la vida personal como una prioridad, para prevenir el estrés crónico, el 
-agotamiento y otros problemas relacionados con la salud mental. A largo plazo, promover una cultura laboral 
-que valore el bienestar de los empleados puede ser esencial para mejorar la salud mental de los hombres y 
-de la fuerza laboral en general.           
-''')
+# Graficar los datos y la línea de ajuste
+plt.figure(figsize=(16, 8))
+plt.scatter(df_grouped['Age'], df_grouped['average_support'], color='blue')
+plt.plot(df_grouped['Age'], slope * df_grouped['Age'] + intercept, color='red')
+plt.title('Relación entre Edad y Apoyo de las Compañías al Trabajo Remoto')
+plt.xlabel('Edad')
+plt.ylabel('Apoyo Promedio de las Compañías al Trabajo Remoto')
+plt.grid(True)
+st.pyplot(plt)
+
+st.markdown("Análisis de supuestos")
+
+# Obtener los residuos del modelo
+residuals = model.resid
+
+st.write("1. Los errores son independientes")
+st.write("Test de Durbin Watson")
+
+st.write("H0: No existe correlación entre los residuos.")
+st.write("H1: Los residuos están autocorrelacionados.")
+
+# Test de Durbin-Watson para independencia de los errores
+dw_test = durbin_watson(residuals)
+
+st.write(f'Test de Durbin-Watson: {dw_test}')
+
+alpha = 0.5
+
+# Interpretación del test
+if 2 - alpha <= dw_test <= 2 + alpha:
+    st.write("Los residuos no están correlacionados. Se cumple el supuesto de independencia.")
+elif dw_test > 2 + alpha:
+    st.write("Hay una autocorrelación negativa en los residuos.")
+else:
+    st.write("Hay una autocorrelación positiva en los residuos.")
+
+
+st.write("2. El valor esperado de los errores es cero")
+st.write("Test para la media de una población")
+
+st.markdown("$H_0: \mu_0 = 0$")
+st.markdown("$$H_1: \mu_0 \\neq 0$$")
+
+# Test para la media de una población
+t_stat, p_value = stats.ttest_1samp(residuals, 0)
+
+st.write(f"T-statistic: {t_stat:.5f}, P-value: {p_value:.5f}")
+
+if p_value < 0.05:
+    st.write("Hay evidencia para rechazar la hipótesis nula de que la media de los residuos es cero.")
+else:
+    st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que la media de los residuos es cero. Se cumple el supuesto.")
+
+
+
+st.write("3. La Varianza del error aleatorio es constante")
+st.write("Test de Breusch-Pagan para determinar la Homocedasticidad de los residuos.")
+
+st.write("H0: La homocedasticidad está presente.")
+st.write("H1: La homocedasticidad no está presente (es decir, existe heterocedasticidad)")
+# Test de Breusch-Pagan para homocedasticidad
+names = ['Lagrange multiplier statistic', 'p-value', 'f-value', 'f p-value']
+test = sms.het_breuschpagan(residuals, model.model.exog)
+
+st.write(lzip(names, test))
+
+p_value_bp = test[1]
+
+if p_value_bp < 0.05:
+    st.write("Hay evidencia para rechazar la hipótesis nula de que existe homocedasticidad.")
+else:
+    st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que existe homocedasticidad. Se cumple el supuesto.")
+
+
+st.write("4. Los errores además son idénticamente distribuidos y siguen distribución normal con media cero y varianza constante")
+st.write("Test de Shapiro-Wilk (n < 30) o Normality Test (n >= 30).")
+
+st.write("H0: Los datos siguen una distribución Normal")
+st.write("H1: Los datos no siguen una distribución Normal")
+
+# Test de normalidad para los residuos
+_, norm_pvalue = normaltest(residuals)
+
+st.write(f'Normality Test p-value: {norm_pvalue}')
+
+if norm_pvalue < 0.05:
+    st.write("Hay evidencia para rechazar la hipótesis nula de que los residuos siguen una distribución normal.")
+else:
+    st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que los residuos siguen una distribución normal. Se cumple el supuesto.")
+
+# Gráfico de residuos vs valores ajustados
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.scatterplot(x=model.fittedvalues, y=residuals, ax=ax)
+ax.axhline(0, ls='--', color='red')
+ax.set_xlabel('Valores Ajustados')
+ax.set_ylabel('Residuos')
+ax.set_title('Residuos vs. Valores Ajustados')
+st.pyplot(fig)
+
+# Histograma de los residuos
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.histplot(residuals, kde=True, ax=ax)
+ax.set_xlabel('Residuos')
+ax.set_ylabel('Frecuencia')
+ax.set_title('Histograma de Residuos')
+st.pyplot(fig)
+
+# Q-Q plot de los residuos
+fig = sm.qqplot(residuals, line='45')
+plt.title('Q-Q plot de los Residuos')
+st.pyplot(fig)
+
+
+st.markdown('''Interpretación del Análisis de los Supuestos
+
+    Independencia de los Errores (Test de Durbin-Watson): Este test evalúa si los residuos están correlacionados. Un valor cercano a 2 sugiere que los residuos no están correlacionados.
+
+    Media de los Errores es Cero: Utilizamos un test para la media de una población para verificar que la media de los residuos es cero. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto se cumple.
+
+    Homoscedasticidad (Test de Breusch-Pagan): Este test evalúa si la varianza de los errores es constante a través de los valores ajustados. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de homocedasticidad se cumple.
+
+    Normalidad de los Errores (Test de Normalidad): Utilizamos el test de normalidad para verificar si los residuos siguen una distribución normal. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de normalidad se cumple.''')
+
+# Convertir Productivity_Change a categorías numéricas
+impact['Productivity_Change'] = impact['Productivity_Change'].map({'Increase': 1, 'No Change': 0, 'Decrease': -1})
+
+# Rellenar NaNs con la media de las columnas relevantes para evitar dimensiones negativas
+impact['Hours_Worked_Per_Week'].fillna(impact['Hours_Worked_Per_Week'].mean(), inplace=True)
+impact['Productivity_Change'].fillna(impact['Productivity_Change'].mean(), inplace=True)
+
+# Eliminar filas con cualquier NaN restante
+impact = impact.dropna(subset=['Hours_Worked_Per_Week', 'Productivity_Change'])
+
+# Ajustar el modelo ANOVA
+modelo_anova = ols('Hours_Worked_Per_Week ~ C(Productivity_Change)', data=impact).fit()
+
+# Realizar el análisis de varianza (ANOVA)
+tabla_anova = sm.stats.anova_lm(modelo_anova, typ=2)
+
+# Mostrar la tabla ANOVA en Streamlit
+st.title("Estudio ANOVA de Productivity Change")
+st.write(tabla_anova)
+
+# Interpretación de la Tabla ANOVA
+st.subheader("Interpretación de la Tabla ANOVA")
+st.write("""
+La tabla ANOVA se interpreta de la siguiente manera:
+
+- **sum_sq**: Esta es la suma de cuadrados. Para `Productivity_Change`, es la variabilidad explicada por `Productivity_Change`. Para `Residual`, es la variabilidad no explicada por `Productivity_Change`.
+- **df**: Este es el grado de libertad. Para `Productivity_Change`, es el número de grupos menos 1. Para `Residual`, es el número total de observaciones menos el número de grupos.
+- **F**: Este es el valor F, que es la razón entre la variabilidad explicada por `Productivity_Change` y la variabilidad no explicada por `Productivity_Change`. Un valor F grande sugiere que al menos uno de los grupos es significativamente diferente de los otros.
+- **PR(>F)**: Este es el valor p, que es la probabilidad de obtener un valor F tan grande o mayor si la hipótesis nula es verdadera (es decir, si todos los grupos son realmente iguales). Un valor p pequeño sugiere que se puede rechazar la hipótesis nula.
+""")
+
+# Boxplot para visualizar las diferencias entre los grupos
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.boxplot(x='Productivity_Change', y='Hours_Worked_Per_Week', data=impact, ax=ax, palette="Set3")
+ax.set_xlabel('Cambio en Productividad')
+ax.set_ylabel('Horas Trabajadas por Semana')
+ax.set_title('Boxplot: Cambio en Productividad vs Horas Trabajadas por Semana')
+st.pyplot(fig)
+
+# Violinplot para visualizar la distribución de los datos en cada grupo
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.violinplot(x='Productivity_Change', y='Hours_Worked_Per_Week', data=impact, ax=ax, palette="Set3")
+ax.set_xlabel('Cambio en Productividad')
+ax.set_ylabel('Horas Trabajadas por Semana')
+ax.set_title('Violinplot: Cambio en Productividad vs Horas Trabajadas por Semana')
+st.pyplot(fig)
+
+st.header("Análisis de supuestos para ANOVA")
+
+# Test de Anderson-Darling para cada grupo
+groups = impact.groupby('Productivity_Change')
+result_dict = {}
+
+for group_name, group_data in groups:
+    result = stats.anderson(group_data['Hours_Worked_Per_Week'])
+    result_dict[group_name] = result
+
+# Mostrar resultados del Test de Anderson-Darling
+for group_name, result in result_dict.items():
+    st.subheader(f"Grupo {group_name} - Test de Anderson-Darling")
+    st.write(f'Estadístico: {result.statistic:.3f}')
+    for i in range(len(result.critical_values)):
+        sl, cv = result.significance_level[i], result.critical_values[i]
+        if result.statistic < cv:
+            st.write(f'Probablemente normal a nivel de significancia {sl:.1f}%')
+        else:
+            st.write(f'Probablemente no normal a nivel de significancia {sl:.1f}%')
+
+# Test de Levene para homocedasticidad
+group_data = [group['Hours_Worked_Per_Week'] for name, group in groups]
+stat, p_value = stats.levene(*group_data)
+
+st.subheader("Test de Levene para Homocedasticidad")
+st.write(f'Estadístico: {stat:.3f}, p-value: {p_value:.3f}')
+if p_value < 0.05:
+    st.write("Hay evidencia para rechazar la hipótesis nula de que las varianzas son iguales. No se cumple el supuesto de homocedasticidad.")
+else:
+    st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que las varianzas son iguales. Se cumple el supuesto de homocedasticidad.")
+
+# Test de Durbin-Watson para independencia de los errores
+dw_stat = durbin_watson(modelo_anova.resid)
+
+st.subheader("Test de Durbin-Watson para Independencia de los Errores")
+st.write(f'Estadístico de Durbin-Watson: {dw_stat:.3f}')
+alpha = 0.5
+if 2 - alpha <= dw_stat <= 2 + alpha:
+    st.write("Los residuos no están correlacionados. Se cumple el supuesto de independencia.")
+elif dw_stat > 2 + alpha:
+    st.write("Hay una autocorrelación negativa en los residuos.")
+else:
+    st.write("Hay una autocorrelación positiva en los residuos.")
+
