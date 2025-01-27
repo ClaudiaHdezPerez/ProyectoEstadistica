@@ -10,7 +10,8 @@ from statsmodels.compat import lzip
 import statsmodels.stats.api as sms
 from scipy.stats import normaltest
 from statsmodels.formula.api import ols
-
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 st.set_page_config( 
     page_title="Impacto del trabajo remoto en la salud mental",
@@ -485,7 +486,7 @@ with col1:
     st.pyplot(fig)
     
 with col2: 
-    st.markdown('<br><br><br><br><br><br>', unsafe_allow_html=True)
+    st.markdown('<br><br><br>', unsafe_allow_html=True)
     st.markdown('''
     La prueba de hipótesis indica que los hombres tienden a trabajar más horas de media a la semana que otros 
     géneros en esta muestra, subrayando la necesidad de abordar los posibles riesgos que este comportamiento 
@@ -498,64 +499,70 @@ with col2:
 
 st.markdown("<h2 style='text-align: center;'>Análisis de correlación</h2>", unsafe_allow_html=True)
 
-# Seleccionar solo las columnas necesarias
-df_grouped = impact.groupby('Number_of_Virtual_Meetings').agg(
-    num_hours=pd.NamedAgg(column='Hours_Worked_Per_Week', aggfunc='count'),
-    total_hours=pd.NamedAgg(column='Hours_Worked_Per_Week', aggfunc='sum')
-).reset_index()
+col1, col2 = st.columns(2)
 
-df_grouped['average_hours'] = df_grouped['total_hours'] / df_grouped['num_hours']
+with col1:
+    # Seleccionar solo las columnas necesarias
+    df_grouped = impact.groupby('Number_of_Virtual_Meetings').agg(
+        num_hours=pd.NamedAgg(column='Hours_Worked_Per_Week', aggfunc='count'),
+        total_hours=pd.NamedAgg(column='Hours_Worked_Per_Week', aggfunc='sum')
+    ).reset_index()
 
-# Calcular la correlación
-correlation = df_grouped['Number_of_Virtual_Meetings'].corr(df_grouped['average_hours'])
+    df_grouped['average_hours'] = df_grouped['total_hours'] / df_grouped['num_hours']
 
-# Mostrar la correlación en Streamlit
-st.write(f"La correlación es: {correlation}")
-# Realizar un ajuste lineal
-slope, intercept = np.polyfit(df_grouped['Number_of_Virtual_Meetings'], df_grouped['average_hours'], 1)
+    # Calcular la correlación
+    correlation = df_grouped['Number_of_Virtual_Meetings'].corr(df_grouped['average_hours'])
 
-# Mostrar la pendiente y la intersección en Streamlit
-st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+    # Mostrar la correlación en Streamlit
+    st.write(f"La correlación es: {correlation}")
+    # Realizar un ajuste lineal
+    slope, intercept = np.polyfit(df_grouped['Number_of_Virtual_Meetings'], df_grouped['average_hours'], 1)
 
-# Graficar los datos y la línea de ajuste
-plt.figure(figsize=(16, 8))
-plt.scatter(df_grouped['Number_of_Virtual_Meetings'], df_grouped['average_hours'], color='blue')
-plt.plot(df_grouped['Number_of_Virtual_Meetings'], slope * df_grouped['Number_of_Virtual_Meetings'] + intercept, color='red')
-plt.title('Relación entre Reuniones Virtuales y Horas Trabajadas por Semana')
-plt.xlabel('Número de Reuniones Virtuales')
-plt.ylabel('Horas Promedio Trabajadas por Semana')
-plt.grid(True)
-st.pyplot(plt)
+    # Mostrar la pendiente y la intersección en Streamlit
+    st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
 
-# Seleccionar solo las columnas necesarias
-df_grouped = impact.groupby('Age').agg(
-    num_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='count'),
-    total_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='sum')
-).reset_index()
+    # Graficar los datos y la línea de ajuste
+    plt.figure(figsize=(16, 8))
+    plt.scatter(df_grouped['Number_of_Virtual_Meetings'], df_grouped['average_hours'], color='blue')
+    plt.plot(df_grouped['Number_of_Virtual_Meetings'], slope * df_grouped['Number_of_Virtual_Meetings'] + intercept, color='red')
+    plt.title('Relación entre Reuniones Virtuales y Horas Trabajadas por Semana')
+    plt.xlabel('Número de Reuniones Virtuales')
+    plt.ylabel('Horas Promedio Trabajadas por Semana')
+    plt.grid(True)
+    st.pyplot(plt)
 
-df_grouped['average_support'] = df_grouped['total_support'] / df_grouped['num_support']
+with col2:
+    # Seleccionar solo las columnas necesarias
+    df_grouped = impact.groupby('Age').agg(
+        num_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='count'),
+        total_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='sum')
+    ).reset_index()
 
-# Calcular la correlación
-correlation = df_grouped['Age'].corr(df_grouped['average_support'])
+    df_grouped['average_support'] = df_grouped['total_support'] / df_grouped['num_support']
 
-# Mostrar la correlación en Streamlit
-st.write(f"La correlación es: {correlation}")
+    # Calcular la correlación
+    correlation = df_grouped['Age'].corr(df_grouped['average_support'])
 
-# Realizar un ajuste lineal
-slope, intercept = np.polyfit(df_grouped['Age'], df_grouped['average_support'], 1)
+    # Mostrar la correlación en Streamlit
+    st.write(f"La correlación es: {correlation}")
 
-# Mostrar la pendiente y la intersección en Streamlit
-st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+    # Realizar un ajuste lineal
+    slope, intercept = np.polyfit(df_grouped['Age'], df_grouped['average_support'], 1)
 
-# Graficar los datos y la línea de ajuste
-plt.figure(figsize=(16, 8))
-plt.scatter(df_grouped['Age'], df_grouped['average_support'], color='blue')
-plt.plot(df_grouped['Age'], slope * df_grouped['Age'] + intercept, color='red')
-plt.title('Relación entre Edad y Apoyo de las Compañías al Trabajo Remoto')
-plt.xlabel('Edad')
-plt.ylabel('Apoyo Promedio de las Compañías al Trabajo Remoto')
-plt.grid(True)
-st.pyplot(plt)
+    # Mostrar la pendiente y la intersección en Streamlit
+    st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+
+    # Graficar los datos y la línea de ajuste
+    plt.figure(figsize=(16, 8))
+    plt.scatter(df_grouped['Age'], df_grouped['average_support'], color='blue')
+    plt.plot(df_grouped['Age'], slope * df_grouped['Age'] + intercept, color='red')
+    plt.title('Relación entre Edad y Apoyo de las Compañías al Trabajo Remoto')
+    plt.xlabel('Edad')
+    plt.ylabel('Apoyo Promedio de las Compañías al Trabajo Remoto')
+    plt.grid(True)
+    st.pyplot(plt)
+
+st.markdown("<h2 style='text-align: center;'>Matriz de correlación</h2>", unsafe_allow_html=True)
 
 # Seleccionar las columnas numéricas
 numeric_col = ['Age', 'Years_of_Experience', 'Hours_Worked_Per_Week', 'Number_of_Virtual_Meetings', 
@@ -581,6 +588,8 @@ X = sm.add_constant(X)
 # Ajustar el Modelo de Regresión Lineal
 model = sm.OLS(y, X).fit()
 
+st.markdown("<h2 style='text-align: center;'>Análisis de Regresión Lineal</h2>", unsafe_allow_html=True)
+
 # Mostrar el resumen del modelo en Streamlit
 st.write(model.summary())
 
@@ -595,6 +604,8 @@ df_grouped['average_support'] = df_grouped['total_support'] / df_grouped['num_su
 # Calcular la correlación
 correlation = df_grouped['Age'].corr(df_grouped['average_support'])
 
+st.markdown("<h2 style='text-align: center;'>Análisis de Regresión Lineal: Edad y Apoyo de las Compañías</h2>", unsafe_allow_html=True)   
+
 # Mostrar la correlación en Streamlit
 st.write(f"La correlación es: {correlation}")
 
@@ -604,144 +615,141 @@ slope, intercept = np.polyfit(df_grouped['Age'], df_grouped['average_support'], 
 # Mostrar la pendiente y la intersección en Streamlit
 st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
 
-# Ajustar el Modelo de Regresión Lineal
-X = sm.add_constant(df_grouped['Age'])
-model = sm.OLS(df_grouped['average_support'], X).fit()
+col1, col2 = st.columns(2)
+
+with col1:
+    # Ajustar el Modelo de Regresión Lineal
+    X = sm.add_constant(df_grouped['Age'])
+    model = sm.OLS(df_grouped['average_support'], X).fit()
+
+    # Obtener los residuos del modelo
+    residuals = model.resid
+
+    # Mostrar el resumen del modelo en Streamlit
+    st.write(model.summary())
+
+with col2:
+    # Gráfico QQ de los residuos
+    fig = sm.qqplot(residuals, line='s')
+    plt.title('Gráfico QQ de los Residuos')
+    st.pyplot(fig)
+
+st.markdown("<h2 style='text-align: center;'>Análisis de supuestos</h2>", unsafe_allow_html=True)
 
 # Obtener los residuos del modelo
 residuals = model.resid
 
-# Mostrar el resumen del modelo en Streamlit
-st.title("Análisis de Regresión Lineal: Edad y Apoyo de las Compañías")
-st.write(model.summary())
+col1, col2 = st.columns(2)
 
-# Gráfico QQ de los residuos
-fig = sm.qqplot(residuals, line='s')
-plt.title('Gráfico QQ de los Residuos')
-st.pyplot(fig)
+with col1:
+    st.markdown("<h3 style='text-align: center;'>1. Los errores son independientes</h3>", unsafe_allow_html=True)
+    st.write("Test de Durbin Watson")
 
-# Graficar los datos y la línea de ajuste
-plt.figure(figsize=(16, 8))
-plt.scatter(df_grouped['Age'], df_grouped['average_support'], color='blue')
-plt.plot(df_grouped['Age'], slope * df_grouped['Age'] + intercept, color='red')
-plt.title('Relación entre Edad y Apoyo de las Compañías al Trabajo Remoto')
-plt.xlabel('Edad')
-plt.ylabel('Apoyo Promedio de las Compañías al Trabajo Remoto')
-plt.grid(True)
-st.pyplot(plt)
+    st.markdown("$H_0:$ No existe correlación entre los residuos")
+    st.markdown("$H_1:$ Los residuos están autocorrelacionados")
 
-st.markdown("Análisis de supuestos")
+    # Test de Durbin-Watson para independencia de los errores
+    dw_test = durbin_watson(residuals)
 
-# Obtener los residuos del modelo
-residuals = model.resid
+    st.write(f'Test de Durbin-Watson: {dw_test}')
 
-st.write("1. Los errores son independientes")
-st.write("Test de Durbin Watson")
+    alpha = 0.5
 
-st.write("H0: No existe correlación entre los residuos.")
-st.write("H1: Los residuos están autocorrelacionados.")
+    # Interpretación del test
+    if 2 - alpha <= dw_test <= 2 + alpha:
+        st.write("Los residuos no están correlacionados. Se cumple el supuesto de independencia.")
+    elif dw_test > 2 + alpha:
+        st.write("Hay una autocorrelación negativa en los residuos.")
+    else:
+        st.write("Hay una autocorrelación positiva en los residuos.")
+                
+with col2: 
+    st.markdown("<h3 style='text-align: center;'>2. El valor esperado de los errores es cero</h3>", unsafe_allow_html=True)
+    st.write("Test para la media de una población")
 
-# Test de Durbin-Watson para independencia de los errores
-dw_test = durbin_watson(residuals)
+    st.markdown("$H_0: \mu_0 = 0$")
+    st.markdown("$H_1: \mu_0 \\neq 0$")
 
-st.write(f'Test de Durbin-Watson: {dw_test}')
+    # Test para la media de una población
+    t_stat, p_value = stats.ttest_1samp(residuals, 0)
 
-alpha = 0.5
+    st.write(f"T-statistic: {t_stat:.5f}, P-value: {p_value:.5f}")
 
-# Interpretación del test
-if 2 - alpha <= dw_test <= 2 + alpha:
-    st.write("Los residuos no están correlacionados. Se cumple el supuesto de independencia.")
-elif dw_test > 2 + alpha:
-    st.write("Hay una autocorrelación negativa en los residuos.")
-else:
-    st.write("Hay una autocorrelación positiva en los residuos.")
+    if p_value < 0.05:
+        st.write("Hay evidencia para rechazar la hipótesis nula de que la media de los residuos es cero.")
+    else:
+        st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que la media de los residuos es cero. Se cumple el supuesto.")
 
+col1, col2 = st.columns(2)
 
-st.write("2. El valor esperado de los errores es cero")
-st.write("Test para la media de una población")
+with col1:
+    st.markdown("<h3 style='text-align: center;'>3. La Varianza del error aleatorio es constante</h3>", unsafe_allow_html=True)
+    st.write("Test de Breusch-Pagan para determinar la Homocedasticidad de los residuos.")
 
-st.markdown("$H_0: \mu_0 = 0$")
-st.markdown("$$H_1: \mu_0 \\neq 0$$")
+    st.markdown("$H_0:$ La homocedasticidad está presente")
+    st.markdown("$H_1:$ La homocedasticidad no está presente (es decir, existe heterocedasticidad)")
 
-# Test para la media de una población
-t_stat, p_value = stats.ttest_1samp(residuals, 0)
+    # Test de Breusch-Pagan para homocedasticidad
+    names = ['Lagrange multiplier statistic', 'p-value', 'f-value', 'f p-value']
+    test = sms.het_breuschpagan(residuals, model.model.exog)
 
-st.write(f"T-statistic: {t_stat:.5f}, P-value: {p_value:.5f}")
+    st.write(lzip(names, test))
 
-if p_value < 0.05:
-    st.write("Hay evidencia para rechazar la hipótesis nula de que la media de los residuos es cero.")
-else:
-    st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que la media de los residuos es cero. Se cumple el supuesto.")
+    p_value_bp = test[1]
 
+    if p_value_bp < 0.05:
+        st.write("Hay evidencia para rechazar la hipótesis nula de que existe homocedasticidad.")
+    else:
+        st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que existe homocedasticidad. Se cumple el supuesto.")
 
+with col2:
+    st.markdown("<h3 style='text-align: center;'>4. Los errores además son idénticamente distribuidos y siguen distribución normal con media cero y varianza constante</h3>", unsafe_allow_html=True)   
+    st.write("Test de Shapiro-Wilk (n < 30) o Normality Test (n >= 30).")
 
-st.write("3. La Varianza del error aleatorio es constante")
-st.write("Test de Breusch-Pagan para determinar la Homocedasticidad de los residuos.")
+    st.markdown("$H_0:$ Los datos siguen una distribución Normal")
+    st.markdown("$H_1:$ Los datos no siguen una distribución Normal")
 
-st.write("H0: La homocedasticidad está presente.")
-st.write("H1: La homocedasticidad no está presente (es decir, existe heterocedasticidad)")
-# Test de Breusch-Pagan para homocedasticidad
-names = ['Lagrange multiplier statistic', 'p-value', 'f-value', 'f p-value']
-test = sms.het_breuschpagan(residuals, model.model.exog)
+    # Test de normalidad para los residuos
+    _, norm_pvalue = normaltest(residuals)
 
-st.write(lzip(names, test))
+    st.write(f'Normality Test p-value: {norm_pvalue}')
 
-p_value_bp = test[1]
+    if norm_pvalue < 0.05:
+        st.write("Hay evidencia para rechazar la hipótesis nula de que los residuos siguen una distribución normal.")
+    else:
+        st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que los residuos siguen una distribución normal. Se cumple el supuesto.") 
 
-if p_value_bp < 0.05:
-    st.write("Hay evidencia para rechazar la hipótesis nula de que existe homocedasticidad.")
-else:
-    st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que existe homocedasticidad. Se cumple el supuesto.")
+col1, col2 = st.columns(2)
 
+with col1: 
+    # Gráfico de residuos vs valores ajustados
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.scatterplot(x=model.fittedvalues, y=residuals, ax=ax)
+    ax.axhline(0, ls='--', color='red')
+    ax.set_xlabel('Valores Ajustados')
+    ax.set_ylabel('Residuos')
+    ax.set_title('Residuos vs. Valores Ajustados')
+    st.pyplot(fig)
 
-st.write("4. Los errores además son idénticamente distribuidos y siguen distribución normal con media cero y varianza constante")
-st.write("Test de Shapiro-Wilk (n < 30) o Normality Test (n >= 30).")
-
-st.write("H0: Los datos siguen una distribución Normal")
-st.write("H1: Los datos no siguen una distribución Normal")
-
-# Test de normalidad para los residuos
-_, norm_pvalue = normaltest(residuals)
-
-st.write(f'Normality Test p-value: {norm_pvalue}')
-
-if norm_pvalue < 0.05:
-    st.write("Hay evidencia para rechazar la hipótesis nula de que los residuos siguen una distribución normal.")
-else:
-    st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que los residuos siguen una distribución normal. Se cumple el supuesto.")
-
-# Gráfico de residuos vs valores ajustados
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.scatterplot(x=model.fittedvalues, y=residuals, ax=ax)
-ax.axhline(0, ls='--', color='red')
-ax.set_xlabel('Valores Ajustados')
-ax.set_ylabel('Residuos')
-ax.set_title('Residuos vs. Valores Ajustados')
-st.pyplot(fig)
-
-# Histograma de los residuos
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.histplot(residuals, kde=True, ax=ax)
-ax.set_xlabel('Residuos')
-ax.set_ylabel('Frecuencia')
-ax.set_title('Histograma de Residuos')
-st.pyplot(fig)
-
-# Q-Q plot de los residuos
-fig = sm.qqplot(residuals, line='45')
-plt.title('Q-Q plot de los Residuos')
-st.pyplot(fig)
-
+with col2:
+    # Histograma de los residuos
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.histplot(residuals, kde=True, ax=ax)
+    ax.set_xlabel('Residuos')
+    ax.set_ylabel('Frecuencia')
+    ax.set_title('Histograma de Residuos')
+    st.pyplot(fig)
 
 st.markdown('''Interpretación del Análisis de los Supuestos
 
-    Independencia de los Errores (Test de Durbin-Watson): Este test evalúa si los residuos están correlacionados. Un valor cercano a 2 sugiere que los residuos no están correlacionados.
+    Independencia de los Errores (Test de Durbin-Watson): Este test evalúa si los residuos están correlacionados. Un valor cercano a 2 sugiere que los residuos no están correlacionados, el supuesto se cumple.
 
     Media de los Errores es Cero: Utilizamos un test para la media de una población para verificar que la media de los residuos es cero. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto se cumple.
 
     Homoscedasticidad (Test de Breusch-Pagan): Este test evalúa si la varianza de los errores es constante a través de los valores ajustados. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de homocedasticidad se cumple.
 
-    Normalidad de los Errores (Test de Normalidad): Utilizamos el test de normalidad para verificar si los residuos siguen una distribución normal. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de normalidad se cumple.''')
+    Normalidad de los Errores (Test de Normalidad): Utilizamos el test de normalidad para verificar si los residuos siguen una distribución normal. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de normalidad se cumple.    
+    ''')
 
 # Convertir Productivity_Change a categorías numéricas
 impact['Productivity_Change'] = impact['Productivity_Change'].map({'Increase': 1, 'No Change': 0, 'Decrease': -1})
@@ -760,11 +768,11 @@ modelo_anova = ols('Hours_Worked_Per_Week ~ C(Productivity_Change)', data=impact
 tabla_anova = sm.stats.anova_lm(modelo_anova, typ=2)
 
 # Mostrar la tabla ANOVA en Streamlit
-st.title("Estudio ANOVA de Productivity Change")
+st.markdown("<h2 style='text-align: center;'>Estudio ANOVA de Cambio de Productividad</h2>", unsafe_allow_html=True)   
 st.write(tabla_anova)
 
 # Interpretación de la Tabla ANOVA
-st.subheader("Interpretación de la Tabla ANOVA")
+st.markdown("<h3 style='text-align: center;'>Interpretación de la Tabla ANOVA</h3>", unsafe_allow_html=True)   
 st.write("""
 La tabla ANOVA se interpreta de la siguiente manera:
 
@@ -774,23 +782,27 @@ La tabla ANOVA se interpreta de la siguiente manera:
 - **PR(>F)**: Este es el valor p, que es la probabilidad de obtener un valor F tan grande o mayor si la hipótesis nula es verdadera (es decir, si todos los grupos son realmente iguales). Un valor p pequeño sugiere que se puede rechazar la hipótesis nula.
 """)
 
-# Boxplot para visualizar las diferencias entre los grupos
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.boxplot(x='Productivity_Change', y='Hours_Worked_Per_Week', data=impact, ax=ax, palette="Set3")
-ax.set_xlabel('Cambio en Productividad')
-ax.set_ylabel('Horas Trabajadas por Semana')
-ax.set_title('Boxplot: Cambio en Productividad vs Horas Trabajadas por Semana')
-st.pyplot(fig)
+col1, col2 = st.columns(2)
 
-# Violinplot para visualizar la distribución de los datos en cada grupo
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.violinplot(x='Productivity_Change', y='Hours_Worked_Per_Week', data=impact, ax=ax, palette="Set3")
-ax.set_xlabel('Cambio en Productividad')
-ax.set_ylabel('Horas Trabajadas por Semana')
-ax.set_title('Violinplot: Cambio en Productividad vs Horas Trabajadas por Semana')
-st.pyplot(fig)
+with col1:
+    # Boxplot para visualizar las diferencias entre los grupos
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.boxplot(x='Productivity_Change', y='Hours_Worked_Per_Week', data=impact, ax=ax, palette="Set3")
+    ax.set_xlabel('Cambio en Productividad')
+    ax.set_ylabel('Horas Trabajadas por Semana')
+    ax.set_title('Boxplot: Cambio en Productividad vs Horas Trabajadas por Semana')
+    st.pyplot(fig)
 
-st.header("Análisis de supuestos para ANOVA")
+with col2:
+    # Violinplot para visualizar la distribución de los datos en cada grupo
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.violinplot(x='Productivity_Change', y='Hours_Worked_Per_Week', data=impact, ax=ax, palette="Set3")
+    ax.set_xlabel('Cambio en Productividad')
+    ax.set_ylabel('Horas Trabajadas por Semana')
+    ax.set_title('Violinplot: Cambio en Productividad vs Horas Trabajadas por Semana')
+    st.pyplot(fig)
+
+st.markdown('<h2 style="text-align: center;">Análisis de supuestos para ANOVA</h2>', unsafe_allow_html=True)
 
 # Test de Anderson-Darling para cada grupo
 groups = impact.groupby('Productivity_Change')
@@ -800,38 +812,92 @@ for group_name, group_data in groups:
     result = stats.anderson(group_data['Hours_Worked_Per_Week'])
     result_dict[group_name] = result
 
+group_names = list(result_dict.keys())
+cols = st.columns(len(groups))
+
 # Mostrar resultados del Test de Anderson-Darling
-for group_name, result in result_dict.items():
-    st.subheader(f"Grupo {group_name} - Test de Anderson-Darling")
-    st.write(f'Estadístico: {result.statistic:.3f}')
-    for i in range(len(result.critical_values)):
-        sl, cv = result.significance_level[i], result.critical_values[i]
-        if result.statistic < cv:
-            st.write(f'Probablemente normal a nivel de significancia {sl:.1f}%')
-        else:
-            st.write(f'Probablemente no normal a nivel de significancia {sl:.1f}%')
+for idx, group_name in enumerate(result_dict):
+    result = result_dict[group_name]
+    with cols[idx]:
+        st.subheader(f"Grupo {group_name} - Test de Anderson-Darling")
+        st.write(f'Estadístico: {result.statistic:.3f}')
+        for i in range(len(result.critical_values)):
+            sl, cv = result.significance_level[i], result.critical_values[i]
+            if result.statistic < cv:
+                st.write(f'Probablemente normal a nivel de significancia {sl:.1f}%')
+            else:
+                st.write(f'Probablemente no normal a nivel de significancia {sl:.1f}%')
 
 # Test de Levene para homocedasticidad
 group_data = [group['Hours_Worked_Per_Week'] for name, group in groups]
 stat, p_value = stats.levene(*group_data)
 
-st.subheader("Test de Levene para Homocedasticidad")
-st.write(f'Estadístico: {stat:.3f}, p-value: {p_value:.3f}')
-if p_value < 0.05:
-    st.write("Hay evidencia para rechazar la hipótesis nula de que las varianzas son iguales. No se cumple el supuesto de homocedasticidad.")
-else:
-    st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que las varianzas son iguales. Se cumple el supuesto de homocedasticidad.")
+col1, col2 = st.columns(2)
 
-# Test de Durbin-Watson para independencia de los errores
-dw_stat = durbin_watson(modelo_anova.resid)
+with col1:
+    st.subheader("Test de Levene para Homocedasticidad")
+    st.write(f'Estadístico: {stat:.3f}, p-value: {p_value:.3f}')
+    if p_value < 0.05:
+        st.write("Hay evidencia para rechazar la hipótesis nula de que las varianzas son iguales. No se cumple el supuesto de homocedasticidad.")
+    else:
+        st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que las varianzas son iguales. Se cumple el supuesto de homocedasticidad.")
 
-st.subheader("Test de Durbin-Watson para Independencia de los Errores")
-st.write(f'Estadístico de Durbin-Watson: {dw_stat:.3f}')
-alpha = 0.5
-if 2 - alpha <= dw_stat <= 2 + alpha:
-    st.write("Los residuos no están correlacionados. Se cumple el supuesto de independencia.")
-elif dw_stat > 2 + alpha:
-    st.write("Hay una autocorrelación negativa en los residuos.")
-else:
-    st.write("Hay una autocorrelación positiva en los residuos.")
+    # Test de Durbin-Watson para independencia de los errores
+    dw_stat = durbin_watson(modelo_anova.resid)
 
+with col2:
+    st.subheader("Test de Durbin-Watson para Independencia de los Errores")
+    st.write(f'Estadístico de Durbin-Watson: {dw_stat:.3f}')
+    alpha = 0.5
+    if 2 - alpha <= dw_stat <= 2 + alpha:
+        st.write("Los residuos no están correlacionados. Se cumple el supuesto de independencia.")
+    elif dw_stat > 2 + alpha:
+        st.write("Hay una autocorrelación negativa en los residuos.")
+    else:
+        st.write("Hay una autocorrelación positiva en los residuos.")
+        
+# Seleccionar las columnas numéricas y normalizarlas
+numeric_cols = ['Age', 'Years_of_Experience', 'Hours_Worked_Per_Week', 'Number_of_Virtual_Meetings', 'Work_Life_Balance_Rating',
+                'Social_Isolation_Rating', 'Company_Support_for_Remote_Work']
+
+df_numeric = impact[numeric_cols]
+df_normalize = StandardScaler().fit_transform(df_numeric)
+
+# Realizar PCA
+component_count = 5
+pca = PCA(component_count)
+principalComponents = pca.fit_transform(df_normalize)
+principal_Df = pd.DataFrame(data=principalComponents, columns=[f'PC{i}' for i in range(1, component_count+1)])
+variance_ratio = pca.explained_variance_ratio_
+
+# Análisis de componentes
+analysis = pd.DataFrame(pca.components_, columns=numeric_cols, index=[f'PC{i}' for i in range(1, component_count+1)]).T
+
+# Streamlit app
+st.markdown('<h2 style="text-align: center;">Análisis de Componentes Principales (PCA)</h2>', unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.dataframe(analysis)
+    
+with col2:
+    # Heatmap de análisis de componentes
+    fig2, ax2 = plt.subplots()
+    sns.heatmap(analysis, vmin=-1, vmax=1, cmap='coolwarm', ax=ax2)
+    ax2.set_title('Heatmap de Análisis de Componentes')
+    st.pyplot(fig2)
+
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.bar_chart(principal_Df)
+
+with col2:
+    fig, ax = plt.subplots()
+    ax.bar(np.arange(variance_ratio.shape[0]) + 1, variance_ratio)
+    ax.set_title("Porciento de la varianza explicado por cada componente principal")
+    ax.set_xlabel("Componentes principales")
+    ax.set_ylabel("Porcentaje de varianza explicada")
+    st.pyplot(fig)
