@@ -633,6 +633,20 @@ with col2:
     fig = sm.qqplot(residuals, line='s')
     plt.title('Gráfico QQ de los Residuos')
     st.pyplot(fig)
+    
+st.write("""
+    Se tienen los siguientes resultados:
+
+    - **R-cuadrado**: El valor de R-cuadrado es 0.337, lo que significa que aproximadamente el 33.7% de la variabilidad en average_support puede ser explicada por las variables independientes en el modelo.
+    - **F-estadístico**: El valor de F-estadístico es 14.73 y el valor p asociado es muy pequeño (0.000621), lo que indica que al menos una de las variables independientes es significativamente diferente de cero en el nivel de confianza del 95%.
+    - **Coeficientes**: Los coeficientes representan el cambio en la variable dependiente por cada cambio de una unidad en la variable independiente, manteniendo constantes las demás variables. Por ejemplo, por cada aumento de una unidad en Age, average_support aumenta en promedio 0.0229 unidades.
+    - **p-value**: Los p-values para cada coeficiente indican si la variable es significativa en el modelo. Si el valor p es menor que 0.05, la variable es significativa. En este caso, Age es significativa.
+    - **Omnibus/Prob(Omnibus)**: Prueba la hipótesis de que los residuos están normalmente distribuidos. Un valor de Prob(Omnibus) cercano a 1 indica que los residuos están normalmente distribuidos. En este caso, el valor es 0.024, lo que indica que los residuos no están perfectamente distribuidos normalmente.
+    - **Durbin-Watson**: Prueba la existencia de autocorrelación en los residuos. Un valor cercano a 2 indica que no hay autocorrelación. En este caso, el valor es 1.910, lo que indica que no hay autocorrelación significativa.
+    - **Jarque-Bera (JB)/Prob(JB)**: Prueba la hipótesis de que los residuos están normalmente distribuidos. Un valor de Prob(JB) cercano a 1 indica que los residuos están normalmente distribuidos. En este caso, el valor es 0.0562, lo que indica que los residuos están razonablemente distribuidos normalmente.
+    - **Cond. No.**: Indica la multicolinealidad en los datos. Un número mayor a 30 puede indicar una fuerte multicolinealidad. En este caso, el valor es 146, lo que sugiere que puede haber alguna multicolinealidad en los datos.
+""")
+
 
 st.markdown("<h2 style='text-align: center;'>Análisis de supuestos</h2>", unsafe_allow_html=True)
 
@@ -740,16 +754,15 @@ with col2:
     ax.set_title('Histograma de Residuos')
     st.pyplot(fig)
 
-st.markdown('''Interpretación del Análisis de los Supuestos
+st.write("""
+    Interpretación del análisis de los supuestos:
 
-    Independencia de los Errores (Test de Durbin-Watson): Este test evalúa si los residuos están correlacionados. Un valor cercano a 2 sugiere que los residuos no están correlacionados, el supuesto se cumple.
+    - **Independencia de los Errores (Test de Durbin-Watson)**: Este test evalúa si los residuos están correlacionados. Un valor cercano a 2 sugiere que los residuos no están correlacionados, lo que indica que el supuesto se cumple.
+    - **Media de los Errores es Cero**: Utilizamos un test para la media de una población para verificar que la media de los residuos es cero. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto se cumple.
+    - **Homoscedasticidad (Test de Breusch-Pagan)**: Este test evalúa si la varianza de los errores es constante a través de los valores ajustados. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de homocedasticidad se cumple.
+    - **Normalidad de los Errores (Test de Normalidad)**: Utilizamos el test de normalidad para verificar si los residuos siguen una distribución normal. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de normalidad se cumple.    
+""")
 
-    Media de los Errores es Cero: Utilizamos un test para la media de una población para verificar que la media de los residuos es cero. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto se cumple.
-
-    Homoscedasticidad (Test de Breusch-Pagan): Este test evalúa si la varianza de los errores es constante a través de los valores ajustados. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de homocedasticidad se cumple.
-
-    Normalidad de los Errores (Test de Normalidad): Utilizamos el test de normalidad para verificar si los residuos siguen una distribución normal. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de normalidad se cumple.    
-    ''')
 
 # Convertir Productivity_Change a categorías numéricas
 impact['Productivity_Change'] = impact['Productivity_Change'].map({'Increase': 1, 'No Change': 0, 'Decrease': -1})
