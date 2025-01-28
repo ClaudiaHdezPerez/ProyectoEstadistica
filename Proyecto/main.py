@@ -125,7 +125,7 @@ with col2:
     ### ¿Pero estos niveles de satisfacción que impacto puede tener en la salud mental de la población a nivel mundial?
     Apoyándonos en que la minoría de nuestros datos está descontenta, ¿se podrá decir que la minoría de la población ha tenido que acceder a recursos de salud mental?
 
-    Probemos entonces que menos del 50% de los trabajadores a nivel mundial ha tenido que acceder a recursos de salud mental como resultado del trabajo remoto con un nivel de confianza de 95%.            
+    Intentemos probar entonces que menos del 50% de los trabajadores a nivel mundial tiene que acceder a recursos de salud mental como resultado del trabajo remoto con un nivel de confianza de 95%.            
     ''')
 
     
@@ -133,7 +133,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("<h2 style='text-align: center;'>Prueba de Hipótesis sobre Acceso a Recursos de Salud Mental</h2>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
     
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1: 
     st.markdown(r'''
@@ -156,17 +156,15 @@ with col1:
     z = (p_hat - p_0) / np.sqrt(p_0 * (1 - p_0) / total_workers)
     z_alpha = stats.norm.ppf(1 - alpha)
     if z < -z_alpha:
-        st.write("Rechazamos la hipótesis nula H0")
+        st.write("Rechazamos la hipótesis nula")
     else:
-        st.write("No podemos rechazar la hipótesis nula H0")
+        st.write("No podemos rechazar la hipótesis nula")
     
     st.markdown("<br>", unsafe_allow_html=True)
     
     st.markdown('Como se muestra, los niveles de satisfacción están directamente relacionados con la afectación de la salud mental de las personas en el trabajo remoto. Por lo que podría decirse que aunque no ha resultado beneficiosa para la mayoría, los criterios están muy cercanos.')
 
 with col2:    
-    # Gráfico de pastel por acceso a recursos de salud mental
-    # Datos para el gráfico de pastel
     labels = ['Sí', 'No']
     sizes = resources_counts.values
     colors = ['yellowgreen', 'lightcoral']
@@ -174,6 +172,14 @@ with col2:
     ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=140)
     ax.axis('equal')
     st.pyplot(fig)
+    
+with col3:
+    # Crear la tabla de contingencia
+    tabla_contingencia = pd.crosstab(impact['Region'], impact['Access_to_Mental_Health_Resources'])
+
+    # Mostrar la tabla de contingencia en Streamlit
+    st.write("Tabla de Contingencia por Región y Acceso a Recursos de Salud Mental:")
+    st.dataframe(tabla_contingencia)
 
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("<h2 style='text-align: center;'>Análisis de la Edad de los Encuestados</h2>", unsafe_allow_html=True)
@@ -182,8 +188,6 @@ st.markdown("<br>", unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 
 with col1:
-    # Boxplot de la Edad de los Encuestados
-    st.markdown('#### Boxplot de la Edad de los Encuestados')
     fig, ax = plt.subplots()
     ax.boxplot(impact['Age'].dropna())
     ax.set_ylabel('Edad')
@@ -191,8 +195,6 @@ with col1:
     st.pyplot(fig)
     
 with col2:
-    # Histograma de la Edad de los Encuestados
-    st.markdown('#### Histograma de la Edad de los Encuestados')
     fig, ax = plt.subplots()
     ax.hist(impact['Age'].dropna(), bins=30, edgecolor='black')
     ax.set_xlabel('Edad')
@@ -203,7 +205,7 @@ with col2:
 st.markdown('''
 El histograma parece mostrar que las edades distribuyen normal. Tomemos dicha hipótesis e intentemos probarla: 
 
-El siguiente bloque de código se enfoca en probar la hipótesis de normalidad de la distribución de las edades de los encuestados, utilizando la prueba de normalidad de D'Agostino-Pearson y visualizando los resultados a través de un histograma y un gráfico Q-Q.
+A continuación se quiere probar la hipótesis de normalidad de la distribución de las edades de los encuestados, utilizando la prueba de normalidad de D'Agostino-Pearson y visualizando los resultados a través de un histograma y un gráfico Q-Q.
 
 Un gráfico Q-Q (Quantile-Quantile plot) es una herramienta gráfica utilizada para comparar la distribución de un conjunto de datos con una distribución teórica, como la distribución normal. El objetivo principal de un gráfico Q-Q es evaluar si los datos siguen una distribución específica.
 
@@ -344,11 +346,11 @@ with col1:
     else:
         container.write("Se rechaza la hipótesis nula para hombres: los datos no parecen provenir de una distribución normal.")
 
-    # Histograma y curva de distribución para hombres y no hombres
     fig, ax = plt.subplots()
     
     # Hombres
     ax.hist(men_hours, bins=30, edgecolor='black', density=True, alpha=0.5, label='Hombres', color='blue')
+    xmin, xmax = ax.get_xlim()
     mean_men, std_dev_men = np.mean(men_hours), np.std(men_hours)
     x_men = np.linspace(xmin, xmax, 100)
     p_men = stats.norm.pdf(x_men, mean_men, std_dev_men)
@@ -356,6 +358,7 @@ with col1:
     
     # No Hombres
     ax.hist(non_men_hours, bins=30, edgecolor='black', density=True, alpha=0.5, label='No Hombres', color='red')
+    xmin, xmax = ax.get_xlim()
     mean_non_men, std_dev_non_men = np.mean(non_men_hours), np.std(non_men_hours)
     x_non_men = np.linspace(xmin, xmax, 100)
     p_non_men = stats.norm.pdf(x_non_men, mean_non_men, std_dev_non_men)
@@ -464,64 +467,56 @@ with col2:
     st.markdown(f'Grados de libertad: {degrees_of_freedom}')
     st.markdown(f'Valor crítico (t-student): {t_critical}')
 
-col1, col2 = st.columns(2)
-
-with col1: 
-# Pair plot
-    st.markdown('#### Pair Plot')
-
-    # Ejemplo de datos (asegúrate de que men_hours y non_men_hours estén definidos)
-    min_length = min(len(men_hours.values), len(non_men_hours.values))
-    data = {
-        'Hombres': men_hours.values.tolist()[:min_length],
-        'Resto de Géneros': non_men_hours.values.tolist()[:min_length],
-        'Grupo': ['Hombres'] * 635 + ['Resto de Géneros'] * 635
-    }
-    df = pd.DataFrame(data)
-
-    # Crear el pair plot
-    fig = sns.pairplot(df, hue='Grupo')
-
-    # Mostrar el gráfico en Streamlit
-    st.pyplot(fig)
-    
-with col2: 
-    st.markdown('<br><br><br>', unsafe_allow_html=True)
-    st.markdown('''
-    La prueba de hipótesis indica que los hombres tienden a trabajar más horas de media a la semana que otros 
-    géneros en esta muestra, subrayando la necesidad de abordar los posibles riesgos que este comportamiento 
-    puede tener en su salud mental. Es fundamental que tanto los empleadores como los empleados consideren el 
-    equilibrio entre el trabajo y la vida personal como una prioridad, para prevenir el estrés crónico, el 
-    agotamiento y otros problemas relacionados con la salud mental. A largo plazo, promover una cultura laboral 
-    que valore el bienestar de los empleados puede ser esencial para mejorar la salud mental de los hombres y 
-    de la fuerza laboral en general.        
-    ''',)
+st.markdown('''
+<h5>La prueba de hipótesis indica que los hombres tienden a trabajar más horas de media a la semana que otros 
+géneros en esta muestra, subrayando la necesidad de abordar los posibles riesgos que este comportamiento 
+puede tener en su salud mental. Es fundamental que tanto los empleadores como los empleados consideren el 
+equilibrio entre el trabajo y la vida personal como una prioridad, para prevenir el estrés crónico, el 
+agotamiento y otros problemas relacionados con la salud mental. A largo plazo, promover una cultura laboral 
+que valore el bienestar de los empleados puede ser esencial para mejorar la salud mental de los hombres y 
+de la fuerza laboral en general.</h5>       
+''', unsafe_allow_html=True)
 
 st.markdown("<h2 style='text-align: center;'>Análisis de correlación</h2>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
 with col1:
-    # Seleccionar solo las columnas necesarias
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    
+    st.markdown('''
+    Como se observa en la matriz de correlación, nuestros datos numéricos no presentan una correlación significativa
+    entre ellos. Tratemos de 'jugar' un poco con ellos y ver qué podemos concluir.
+    
+    Probemos que relación pueden tener las horas promedio trabajadas por semana y el número de reuniones virtuales.
+    
+    Y por otra parte ver la relación entre la edad y el apoyo promedio de las compañías en el trabajo remoto.
+    ''')
+
+with col2:
+    # Seleccionar las columnas numéricas
+    numeric_col = ['Age', 'Years_of_Experience', 'Hours_Worked_Per_Week', 'Number_of_Virtual_Meetings', 
+                'Work_Life_Balance_Rating', 'Social_Isolation_Rating', 'Company_Support_for_Remote_Work']
+
+    # Crear el heatmap
+    plt.figure(figsize=(10, 5))
+    heatmap = sns.heatmap(impact[numeric_col].corr(), annot=True, cmap='coolwarm')
+    plt.title("Matriz de correlación")
+    # Mostrar el heatmap en Streamlit
+    st.pyplot(heatmap.figure)
+
+col1, col2 = st.columns(2)
+
+with col1:
     df_grouped = impact.groupby('Number_of_Virtual_Meetings').agg(
         num_hours=pd.NamedAgg(column='Hours_Worked_Per_Week', aggfunc='count'),
         total_hours=pd.NamedAgg(column='Hours_Worked_Per_Week', aggfunc='sum')
     ).reset_index()
 
     df_grouped['average_hours'] = df_grouped['total_hours'] / df_grouped['num_hours']
-
-    # Calcular la correlación
     correlation = df_grouped['Number_of_Virtual_Meetings'].corr(df_grouped['average_hours'])
-
-    # Mostrar la correlación en Streamlit
-    st.write(f"La correlación es: {correlation}")
-    # Realizar un ajuste lineal
     slope, intercept = np.polyfit(df_grouped['Number_of_Virtual_Meetings'], df_grouped['average_hours'], 1)
 
-    # Mostrar la pendiente y la intersección en Streamlit
-    st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
-
-    # Graficar los datos y la línea de ajuste
     plt.figure(figsize=(16, 8))
     plt.scatter(df_grouped['Number_of_Virtual_Meetings'], df_grouped['average_hours'], color='blue')
     plt.plot(df_grouped['Number_of_Virtual_Meetings'], slope * df_grouped['Number_of_Virtual_Meetings'] + intercept, color='red')
@@ -530,27 +525,25 @@ with col1:
     plt.ylabel('Horas Promedio Trabajadas por Semana')
     plt.grid(True)
     st.pyplot(plt)
+    
+    st.write(f"La correlación es: {correlation}")
+    st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+    
+    st.markdown('''
+    La correlación entre las variables es extremadamente baja, indicando que no hay una relación lineal significativa entre
+    ellas. En conjunto, estos resultados indican que las variables analizadas no están fuertemente relacionadas, y la
+    influencia de la variable independiente sobre la dependiente es mínima.
+    ''')
 
 with col2:
-    # Seleccionar solo las columnas necesarias
     df_grouped = impact.groupby('Age').agg(
         num_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='count'),
         total_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='sum')
     ).reset_index()
 
     df_grouped['average_support'] = df_grouped['total_support'] / df_grouped['num_support']
-
-    # Calcular la correlación
     correlation = df_grouped['Age'].corr(df_grouped['average_support'])
-
-    # Mostrar la correlación en Streamlit
-    st.write(f"La correlación es: {correlation}")
-
-    # Realizar un ajuste lineal
     slope, intercept = np.polyfit(df_grouped['Age'], df_grouped['average_support'], 1)
-
-    # Mostrar la pendiente y la intersección en Streamlit
-    st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
 
     # Graficar los datos y la línea de ajuste
     plt.figure(figsize=(16, 8))
@@ -561,66 +554,86 @@ with col2:
     plt.ylabel('Apoyo Promedio de las Compañías al Trabajo Remoto')
     plt.grid(True)
     st.pyplot(plt)
+    
+    st.write(f"La correlación es: {correlation}")
+    st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+    
+    st.markdown('''
+    Estos resultados sugieren una relación moderada entre las variables analizadas. La correlación de 0.5803 indica una
+    relación lineal positiva moderada, lo que significa que a medida que una variable aumenta, la otra tiende a aumentar
+    también, aunque no de manera perfecta. En resumen, aunque hay una relación positiva entre las variables, esta no es
+    extremadamente fuerte, pero sí es relevante.
+    ''')
 
-st.markdown("<h2 style='text-align: center;'>Matriz de correlación</h2>", unsafe_allow_html=True)
+# Calcular el promedio de apoyo por edad
+df_average_support = impact.groupby('Age')['Company_Support_for_Remote_Work'].mean().reset_index()
+df_average_support.rename(columns={'Company_Support_for_Remote_Work': 'average_support'}, inplace=True)
 
-# Seleccionar las columnas numéricas
-numeric_col = ['Age', 'Years_of_Experience', 'Hours_Worked_Per_Week', 'Number_of_Virtual_Meetings', 
-               'Work_Life_Balance_Rating', 'Social_Isolation_Rating', 'Company_Support_for_Remote_Work']
-
-# Crear el heatmap
-plt.figure(figsize=(10, 5))
-heatmap = sns.heatmap(impact[numeric_col].corr(), annot=True, cmap='coolwarm')
-
-# Mostrar el heatmap en Streamlit
-st.pyplot(heatmap.figure)
+# Unir el promedio de apoyo al DataFrame original
+impact_with_support = pd.merge(impact, df_average_support, on='Age', how='left')
 
 # Variables independientes
-X = impact[['Age', 'Years_of_Experience', 'Number_of_Virtual_Meetings', 'Hours_Worked_Per_Week', 
-            'Work_Life_Balance_Rating', 'Social_Isolation_Rating']]
-
-# Variable dependiente
-y = impact['Company_Support_for_Remote_Work']
+X = impact_with_support[['Age', 'Years_of_Experience', 'Number_of_Virtual_Meetings', 'Hours_Worked_Per_Week',
+                         'Work_Life_Balance_Rating', 'Social_Isolation_Rating']]
 
 # Añadir la constante
 X = sm.add_constant(X)
 
+# Variable dependiente
+y = impact_with_support['average_support']
+
+# Verificar que los índices coincidan
+assert X.index.equals(y.index), "Los índices de X y y no coinciden"
+
 # Ajustar el Modelo de Regresión Lineal
 model = sm.OLS(y, X).fit()
 
-st.markdown("<h2 style='text-align: center;'>Análisis de Regresión Lineal</h2>", unsafe_allow_html=True)
-
 # Mostrar el resumen del modelo en Streamlit
-st.write(model.summary())
-
-# Seleccionar solo las columnas necesarias
-df_grouped = impact.groupby('Age').agg(
-    num_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='count'),
-    total_support=pd.NamedAgg(column='Company_Support_for_Remote_Work', aggfunc='sum')
-).reset_index()
-
-df_grouped['average_support'] = df_grouped['total_support'] / df_grouped['num_support']
-
-# Calcular la correlación
-correlation = df_grouped['Age'].corr(df_grouped['average_support'])
-
-st.markdown("<h2 style='text-align: center;'>Análisis de Regresión Lineal: Edad y Apoyo de las Compañías</h2>", unsafe_allow_html=True)   
-
-# Mostrar la correlación en Streamlit
-st.write(f"La correlación es: {correlation}")
-
-# Realizar un ajuste lineal
-slope, intercept = np.polyfit(df_grouped['Age'], df_grouped['average_support'], 1)
-
-# Mostrar la pendiente y la intersección en Streamlit
-st.write(f"La pendiente es: {slope}, y la intersección es: {intercept}")
+st.markdown("<h2 style='text-align: center;'>Análisis de Regresión Lineal</h2>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 
 with col1:
+    st.markdown('''
+    ### Condiciones iniciales       
+
+    #### Variable dependiente:
+    - Apoyo promedio de las compañías en el trabajo remoto
+
+    ### Variables independientes: 
+    - Edad
+    - Años de experiencia
+    - Número de reuniones virtuales
+    - Horas trabajadas por semana
+    - Puntuación del balance de vida laboral
+    - Puntuación de aislamiento social
+        
+    ### Condiciones del modelo
+    
+    Vamos a ajustar el modelo con solo las variables que aporten significativamente, esto se traduce a las variables
+    independientes con p-valor menor que 0.05:
+    
+    #### Variable dependiente:
+    - Apoyo promedio de las compañías en el trabajo remoto
+
+    ### Variables independientes: 
+    - Edad
+    - Puntuación de aislamiento social
+
+    ''')
+
+with col2:
+    st.write(model.summary())
+
+st.markdown("<h2 style='text-align: center;'>Modelo ajustado</h2>", unsafe_allow_html=True)   
+
+col1, col2 = st.columns(2)
+
+with col1:
+    X = impact_with_support[['Age', 'Social_Isolation_Rating']]
     # Ajustar el Modelo de Regresión Lineal
-    X = sm.add_constant(df_grouped['Age'])
-    model = sm.OLS(df_grouped['average_support'], X).fit()
+    X = sm.add_constant(X)
+    model = sm.OLS(impact_with_support['average_support'], X).fit()
 
     # Obtener los residuos del modelo
     residuals = model.resid
@@ -637,21 +650,18 @@ with col2:
 st.write("""
     Se tienen los siguientes resultados:
 
-    - **R-cuadrado**: El valor de R-cuadrado es 0.337, lo que significa que aproximadamente el 33.7% de la variabilidad en average_support puede ser explicada por las variables independientes en el modelo.
-    - **F-estadístico**: El valor de F-estadístico es 14.73 y el valor p asociado es muy pequeño (0.000621), lo que indica que al menos una de las variables independientes es significativamente diferente de cero en el nivel de confianza del 95%.
-    - **Coeficientes**: Los coeficientes representan el cambio en la variable dependiente por cada cambio de una unidad en la variable independiente, manteniendo constantes las demás variables. Por ejemplo, por cada aumento de una unidad en Age, average_support aumenta en promedio 0.0229 unidades.
-    - **p-value**: Los p-values para cada coeficiente indican si la variable es significativa en el modelo. Si el valor p es menor que 0.05, la variable es significativa. En este caso, Age es significativa.
-    - **Omnibus/Prob(Omnibus)**: Prueba la hipótesis de que los residuos están normalmente distribuidos. Un valor de Prob(Omnibus) cercano a 1 indica que los residuos están normalmente distribuidos. En este caso, el valor es 0.024, lo que indica que los residuos no están perfectamente distribuidos normalmente.
-    - **Durbin-Watson**: Prueba la existencia de autocorrelación en los residuos. Un valor cercano a 2 indica que no hay autocorrelación. En este caso, el valor es 1.910, lo que indica que no hay autocorrelación significativa.
-    - **Jarque-Bera (JB)/Prob(JB)**: Prueba la hipótesis de que los residuos están normalmente distribuidos. Un valor de Prob(JB) cercano a 1 indica que los residuos están normalmente distribuidos. En este caso, el valor es 0.0562, lo que indica que los residuos están razonablemente distribuidos normalmente.
-    - **Cond. No.**: Indica la multicolinealidad en los datos. Un número mayor a 30 puede indicar una fuerte multicolinealidad. En este caso, el valor es 146, lo que sugiere que puede haber alguna multicolinealidad en los datos.
+    - **R-cuadrado**: El valor de R-cuadrado es 0.233, lo que significa que aproximadamente el 23.3% de la variabilidad en average_support puede ser explicada por las variables independientes en el modelo.
+    - **F-estadístico**: El valor de F-estadístico es 757.1 y el valor p asociado es muy pequeño (6.27e-288), lo que indica que al menos una de las variables independientes es significativamente diferente de cero en el nivel de confianza del 95%.
+    - **Coeficientes**: Los coeficientes representan el cambio en la variable dependiente por cada cambio de una unidad en la variable independiente, manteniendo constantes las demás variables. Por ejemplo, por cada aumento de una unidad en Age, average_support aumenta en promedio 0.0111 unidades.
+    - **p-value**: Los p-values para cada coeficiente indican si la variable es significativa en el modelo. Si el valor p es menor que 0.05, la variable es significativa.
+    - **Omnibus/Prob(Omnibus)**: Prueba la hipótesis de que los residuos están normalmente distribuidos. Un valor de Prob(Omnibus) cercano a 1 indica que los residuos están normalmente distribuidos. En este caso, el valor es 0.000, lo que indica que los residuos no están perfectamente distribuidos normalmente.
+    - **Durbin-Watson**: Prueba la existencia de autocorrelación en los residuos. Un valor cercano a 2 indica que no hay autocorrelación. En este caso, el valor es 2.005, lo que indica que no hay autocorrelación significativa.
+    - **Jarque-Bera (JB)/Prob(JB)**: Prueba la hipótesis de que los residuos están normalmente distribuidos. Un valor de Prob(JB) cercano a 1 indica que los residuos están normalmente distribuidos. En este caso, el valor es 0.000, lo que indica que los residuos no siguen una distribución normal.
+    - **Cond. No.**: Indica la multicolinealidad en los datos. Un número mayor a 30 puede indicar una fuerte multicolinealidad. En este caso, el valor es 265, lo que sugiere que puede haber alguna multicolinealidad en los datos.
 """)
 
 
 st.markdown("<h2 style='text-align: center;'>Análisis de supuestos</h2>", unsafe_allow_html=True)
-
-# Obtener los residuos del modelo
-residuals = model.resid
 
 col1, col2 = st.columns(2)
 
@@ -748,21 +758,11 @@ with col1:
 with col2:
     # Histograma de los residuos
     fig, ax = plt.subplots(figsize=(10, 6))
-    sns.histplot(residuals, kde=True, ax=ax)
+    sns.histplot(residuals, kde=True, ax=ax, bins=40)
     ax.set_xlabel('Residuos')
     ax.set_ylabel('Frecuencia')
     ax.set_title('Histograma de Residuos')
     st.pyplot(fig)
-
-st.write("""
-    Interpretación del análisis de los supuestos:
-
-    - **Independencia de los Errores (Test de Durbin-Watson)**: Este test evalúa si los residuos están correlacionados. Un valor cercano a 2 sugiere que los residuos no están correlacionados, lo que indica que el supuesto se cumple.
-    - **Media de los Errores es Cero**: Utilizamos un test para la media de una población para verificar que la media de los residuos es cero. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto se cumple.
-    - **Homoscedasticidad (Test de Breusch-Pagan)**: Este test evalúa si la varianza de los errores es constante a través de los valores ajustados. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de homocedasticidad se cumple.
-    - **Normalidad de los Errores (Test de Normalidad)**: Utilizamos el test de normalidad para verificar si los residuos siguen una distribución normal. Si no hay suficiente evidencia para rechazar la hipótesis nula, el supuesto de normalidad se cumple.    
-""")
-
 
 # Convertir Productivity_Change a categorías numéricas
 impact['Productivity_Change'] = impact['Productivity_Change'].map({'Increase': 1, 'No Change': 0, 'Decrease': -1})
@@ -869,48 +869,67 @@ with col2:
     else:
         st.write("Hay una autocorrelación positiva en los residuos.")
         
-# Seleccionar las columnas numéricas y normalizarlas
-numeric_cols = ['Age', 'Years_of_Experience', 'Hours_Worked_Per_Week', 'Number_of_Virtual_Meetings', 'Work_Life_Balance_Rating',
-                'Social_Isolation_Rating', 'Company_Support_for_Remote_Work']
+st.markdown('<h2 style="text-align: center;">Análisis de Componentes Principales (PCA)</h2>', unsafe_allow_html=True)
+
+numeric_cols = ['Age', 'Years_of_Experience', 'Hours_Worked_Per_Week', 'Number_of_Virtual_Meetings', 
+                'Work_Life_Balance_Rating', 'Social_Isolation_Rating', 'Company_Support_for_Remote_Work']
 
 df_numeric = impact[numeric_cols]
-df_normalize = StandardScaler().fit_transform(df_numeric)
 
-# Realizar PCA
+df_numeric_filled = df_numeric.fillna(df_numeric.mean())
+
+df_normalize = (df_numeric_filled - df_numeric_filled.mean()) / df_numeric_filled.std()
+
+pca = PCA()
+
+pca.fit_transform(df_normalize)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    variance_ratio = pca.explained_variance_ratio_
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.bar(np.arange(variance_ratio.shape[0]) + 1, variance_ratio)
+    ax.set_xlabel('Componente Principal')
+    ax.set_ylabel('Porcentaje de Varianza Explicada')
+    ax.set_title("Porcentaje de la Varianza Explicado por Cada Componente Principal")
+
+    st.pyplot(fig)
+
+with col2:
+    cum_variance = pca.explained_variance_ratio_.cumsum()
+
+    fig2, ax2 = plt.subplots(figsize=(10, 5))
+    ax2.stem(np.arange(variance_ratio.shape[0]) + 1, cum_variance)
+    ax2.set_xlabel('Componente Principal')
+    ax2.set_ylabel('Porcentaje Acumulativo de Varianza Explicada')
+    ax2.set_title("Porcentaje Acumulativo de Varianza Explicado por Cada Componente Principal")
+    ax2.grid(True)
+    
+    for i, txt in enumerate(cum_variance):
+        ax2.annotate(f'{txt:.2f}', (i + 1, cum_variance[i]), textcoords="offset points", xytext=(0,5), ha='center')
+
+    st.pyplot(fig2)
+    
+    
+st.markdown('''
+#### Analizando el porcentaje acumulativo de varianza explicado por cada componente principal, podemos quedarnos con las primeras 5 componentes aplicando el criterio de Kaiser.            
+''')
+
 component_count = 5
 pca = PCA(component_count)
 principalComponents = pca.fit_transform(df_normalize)
-principal_Df = pd.DataFrame(data=principalComponents, columns=[f'PC{i}' for i in range(1, component_count+1)])
-variance_ratio = pca.explained_variance_ratio_
-
-# Análisis de componentes
-analysis = pd.DataFrame(pca.components_, columns=numeric_cols, index=[f'PC{i}' for i in range(1, component_count+1)]).T
-
-# Streamlit app
-st.markdown('<h2 style="text-align: center;">Análisis de Componentes Principales (PCA)</h2>', unsafe_allow_html=True)
+principal_Df = pd.DataFrame(data = principalComponents, columns=[f'PC{i}' for i in range(1, component_count + 1)])
+analysis = pd.DataFrame(pca.components_, columns=df_normalize.columns, index=[f'PC{i}' for i in range(1, component_count + 1)]).T
 
 col1, col2 = st.columns(2)
 
 with col1:
     st.dataframe(analysis)
-    
+
 with col2:
-    # Heatmap de análisis de componentes
     fig2, ax2 = plt.subplots()
     sns.heatmap(analysis, vmin=-1, vmax=1, cmap='coolwarm', ax=ax2)
     ax2.set_title('Heatmap de Análisis de Componentes')
     st.pyplot(fig2)
-
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.bar_chart(principal_Df)
-
-with col2:
-    fig, ax = plt.subplots()
-    ax.bar(np.arange(variance_ratio.shape[0]) + 1, variance_ratio)
-    ax.set_title("Porciento de la varianza explicado por cada componente principal")
-    ax.set_xlabel("Componentes principales")
-    ax.set_ylabel("Porcentaje de varianza explicada")
-    st.pyplot(fig)
