@@ -122,7 +122,7 @@ with col2:
     st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
     
     st.markdown('''
-    ### ¿Pero estos niveles de satisfacción que impacto puede tener en la salud mental de la población a nivel mundial?
+    ### ¿Pero estos niveles de satisfacción qué impacto puede tener en la salud mental de la población a nivel mundial?
     Apoyándonos en que la minoría de nuestros datos está descontenta, ¿se podrá decir que la minoría de la población ha tenido que acceder a recursos de salud mental?
 
     Intentemos probar entonces que menos del 50% de los trabajadores a nivel mundial tiene que acceder a recursos de salud mental como resultado del trabajo remoto con un nivel de confianza de 95%.            
@@ -660,6 +660,18 @@ st.write("""
     - **Cond. No.**: Indica la multicolinealidad en los datos. Un número mayor a 30 puede indicar una fuerte multicolinealidad. En este caso, el valor es 265, lo que sugiere que puede haber alguna multicolinealidad en los datos.
 """)
 
+st.markdown('''
+#### Como existe una alta multicolinealidad entre las variables independientes, el modelo aún no es bueno, como alternativa eliminaremos una variable independiente: eliminemos la de mayor p-valor (Rating de Aislamiento Social).
+''')
+
+X = sm.add_constant(impact['Age'])
+model = sm.OLS(impact_with_support['average_support'], X).fit()
+
+# Obtener los residuos del modelo
+residuals = model.resid
+
+# Mostrar el resumen del modelo en Streamlit
+st.write(model.summary())
 
 st.markdown("<h2 style='text-align: center;'>Análisis de supuestos</h2>", unsafe_allow_html=True)
 
