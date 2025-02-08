@@ -775,6 +775,193 @@ with col2:
     ax.set_ylabel('Frecuencia')
     ax.set_title('Histograma de Residuos')
     st.pyplot(fig)
+   
+   
+col1, col2 = st.columns(2)
+
+with col1: 
+    st.markdown('''
+    #### A pesar de los ajustes realizados al modelo, sigue siendo malo dado que solo es capaz de explicar el 23% de la variabilidad de los datos. Intentemos entonces crear más variables numéricas a partir de las que ya tenemos y que tengan sentido. 
+
+    ##### Pensemos primero en convertir la variable Stress_Level de categórica a numérica, dado que puede ser interesante trabajar con ella. Veamos el valor que puede proporcionar relacionar el balance de vida con el nivel de estrés y por otro lado el porcentaje de reuniones virtuales en horas trabajadas por semana.
+
+    ''')
+    
+    st.write('''
+    Vemos que el cambio ha sido positivo dado que logramos alcanzar nuestro objetivo de aumentar la correlación entre nuestras variables numéricas.
+    Tendría sentido decir que en nuestro dataset lo que más determina el estado de salud mental del encuestado es su balance de vida con el nivel de 
+    estrés que pudo haber producido experimentar el trabajo remoto.
+    ''')    
+
+with col2:
+    # Create new numerical features based on existing columns
+    # For example, we can create a 'Work_Stress_Index' based on 'Work_Life_Balance_Rating' and 'Stress_Level'
+
+    # First, we need to encode 'Stress_Level' into numerical values
+    stress_mapping = {'Low': 1, 'Medium': 2, 'High': 3}
+
+    # Apply the mapping
+    # Handle potential NaN values by filling them with a default value (e.g., 0)
+    impact['Stress_Level_Numeric'] = impact['Stress_Level'].map(stress_mapping).fillna(0)
+
+    # Create a 'Work_Stress_Index' as a combination of 'Work_Life_Balance_Rating' and 'Stress_Level_Numeric'
+    impact['Work_Stress_Index'] = impact['Work_Life_Balance_Rating'] * impact['Stress_Level_Numeric']
+
+    # Create a 'Virtual_Engagement_Score' based on 'Number_of_Virtual_Meetings' and 'Hours_Worked_Per_Week'
+    impact['Virtual_Engagement_Score'] = impact['Number_of_Virtual_Meetings'] / impact['Hours_Worked_Per_Week'] * 100
+
+    numeric_df = impact.select_dtypes(include=['number'])
+
+    # Crear el heatmap
+    plt.figure(figsize=(10, 5))
+    heatmap = sns.heatmap(numeric_df.corr(), annot=True, cmap='coolwarm')
+    plt.title("Matriz de correlación")
+    # Mostrar el heatmap en Streamlit
+    st.pyplot(heatmap.figure)
+
+X = impact[['Work_Life_Balance_Rating', 'Stress_Level_Numeric']]
+
+# Añadir la constante
+X = sm.add_constant(X)
+
+# Variable dependiente
+y = impact['Work_Stress_Index']
+
+# Verificar que los índices coincidan
+assert X.index.equals(y.index), "Los índices de X y y no coinciden"
+
+# Ajustar el Modelo de Regresión Lineal
+model = sm.OLS(y, X).fit()
+residuals = model.resid
+
+st.write(model.summary())
+st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("##### Ya aquí se filtraron las variables independientes que no aportaban significativamente al modelo y podemos apreciar que logramos nuestro objetivo de maximizar la explicabilidad de nuestro modelo de regresión lineal, esta vez, múltiple.")
+
+st.markdown("<h2 style='text-align: center;'>Análisis de supuestos</h2>", unsafe_allow_html=True)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("<h3 style='text-align: center;'>1. Los errores son independientes</h3>", unsafe_allow_html=True)
+    st.write("Test de Durbin Watson")
+
+    st.markdown("$H_0:$ No existe correlación entre los residuos")
+    st.markdown("$H_1:$ Los residuos están autocorrelacionados")
+
+    # Test de Durbin-Watson para independencia de los errores
+    dw_test = durbin_watson(residuals)
+
+    st.write(f'Test de Durbin-Watson: {dw_test}')
+
+    alpha = 0.5
+
+    # Interpretación del test
+    if 2 - alpha <= dw_test <= 2 + alpha:
+        st.write("Los residuos no están correlacionados. Se cumple el supuesto de independencia.")
+    elif dw_test > 2 + alpha:
+        st.write("Hay una autocorrelación negativa en los residuos.")
+    else:
+        st.write("Hay una autocorrelación positiva en los residuos.")
+
+with col2: 
+    st.markdown("<h3 style='text-align: center;'>2. El valor esperado de los errores es cero</h3>", unsafe_allow_html=True)
+    st.write("Test para la media de una población")
+
+    st.markdown("$H_0: \mu_0 = 0$")
+    st.markdown("$H_1: \mu_0 \\neq 0$")
+
+    # Test para la media de una población
+    t_stat, p_value = stats.ttest_1samp(residuals, 0)
+
+    st.write(f"T-statistic: {t_stat:.5f}, P-value: {p_value:.5f}")
+
+    if p_value < 0.05:
+        st.write("Hay evidencia para rechazar la hipótesis nula de que la media de los residuos es cero.")
+    else:
+        st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que la media de los residuos es cero. Se cumple el supuesto.")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("<h3 style='text-align: center;'>3. La Varianza del error aleatorio es constante</h3>", unsafe_allow_html=True)
+    st.write("Test de Breusch-Pagan para determinar la Homocedasticidad de los residuos.")
+
+    st.markdown("$H_0:$ La homocedasticidad está presente")
+    st.markdown("$H_1:$ La homocedasticidad no está presente (es decir, existe heterocedasticidad)")
+
+    # Test de Breusch-Pagan para homocedasticidad
+    names = ['Lagrange multiplier statistic', 'p-value', 'f-value', 'f p-value']
+    test = sms.het_breuschpagan(residuals, model.model.exog)
+
+    st.write(lzip(names, test))
+
+    p_value_bp = test[1]
+
+    if p_value_bp < 0.05:
+        st.write("Hay evidencia para rechazar la hipótesis nula de que existe homocedasticidad.")
+    else:
+        st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que existe homocedasticidad. Se cumple el supuesto.")
+
+with col2:
+    st.markdown("<h3 style='text-align: center;'>4. Los errores además son idénticamente distribuidos y siguen distribución normal con media cero y varianza constante</h3>", unsafe_allow_html=True)   
+    st.write("Test de Shapiro-Wilk (n < 30) o Normality Test (n >= 30).")
+
+    st.markdown("$H_0:$ Los datos siguen una distribución Normal")
+    st.markdown("$H_1:$ Los datos no siguen una distribución Normal")
+
+    # Test de normalidad para los residuos
+    _, norm_pvalue = stats.normaltest(residuals)
+
+    st.write(f'Normality Test p-value: {norm_pvalue}')
+
+    if norm_pvalue < 0.05:
+        st.write("Hay evidencia para rechazar la hipótesis nula de que los residuos siguen una distribución normal. No se cumple el supuesto.")
+    else:
+        st.write("No hay suficiente evidencia para rechazar la hipótesis nula de que los residuos siguen una distribución normal. Se cumple el supuesto.")
+
+
+st.subheader('Supuesto 5: No colinealidad entre variables independientes')
+
+col1, col2 = st.columns(2)
+
+with col1:
+    # Crear el heatmap
+    plt.figure(figsize=(10, 5))
+    heatmap = sns.heatmap(impact[['Work_Life_Balance_Rating', 'Stress_Level_Numeric']].corr(), annot=True, cmap='coolwarm')
+    plt.title("Matriz de correlación")
+    # Mostrar el heatmap en Streamlit
+    st.pyplot(heatmap.figure)
+
+with col2:
+    st.markdown("<br><br><br><br><br><br>", unsafe_allow_html=True)
+    st.write('''
+    Como se ve en la matriz de correlación las variables independientes tienen un coeficiente de correlación
+    muy cercano a cero, por lo que se puede decir que no están relacionados. Se cumple el supuesto de no
+    colinealidad entres las variables independientes.
+    ''')
+
+st.subheader('Supuesto 6: Relación lineal entre las variables dependientes e independientes')
+    
+cols = st.columns(len(X.columns) - 1)
+
+for idx, col in enumerate(X.columns[1:]):
+    with cols[idx]:
+        st.write(f'Relación entre {col} y la variable dependiente:')
+        sns.lmplot(x=col, y='Work_Stress_Index', data=impact)
+        st.pyplot(plt.gcf())
+        plt.clf()
+    
+        # Análisis estadístico: Coeficiente de correlación de Pearson
+        correlation, p_value = stats.pearsonr(impact[col], impact['Work_Stress_Index'])
+        st.write(f'Coeficiente de correlación de Pearson entre {col} y la variable dependiente: {correlation:.2f}')
+        st.write(f'P-valor: {p_value:.5f}')
+        if p_value < 0.05:
+            st.write("Existe una relación lineal significativa entre las variables.")
+        else:
+            st.write("No se encontró una relación lineal significativa entre las variables.")
+            
+st.write("Se cumple el supuesto de linealidad entre las variables dependientes e independientes")
 
 # Convertir Productivity_Change a categorías numéricas
 impact['Productivity_Change'] = impact['Productivity_Change'].map({'Increase': 1, 'No Change': 0, 'Decrease': -1})
@@ -884,7 +1071,8 @@ with col2:
 st.markdown('<h2 style="text-align: center;">Análisis de Componentes Principales (PCA)</h2>', unsafe_allow_html=True)
 
 numeric_cols = ['Age', 'Years_of_Experience', 'Hours_Worked_Per_Week', 'Number_of_Virtual_Meetings', 
-                'Work_Life_Balance_Rating', 'Social_Isolation_Rating', 'Company_Support_for_Remote_Work']
+                'Work_Life_Balance_Rating', 'Social_Isolation_Rating', 'Company_Support_for_Remote_Work',
+                'Stress_Level_Numeric', 'Work_Stress_Index', 'Virtual_Engagement_Score']
 
 df_numeric = impact[numeric_cols]
 
